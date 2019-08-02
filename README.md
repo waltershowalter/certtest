@@ -6,3 +6,10 @@ Go version used :  go1.10.1 darwin/amd64
 
 To run type: go run certificate_server.go in main under the root folder
 
+This certtest program returns a mock cert based off the the URL you give in the GET request
+
+To use open a browser and type : http://localhost:8888/cert/www.abc.com
+
+You can swap out the URL at the end of the path with your own test URL.
+
+Certificates will time out after 10 minutes and be marked as expired until a new request comes in. At that time the already created certificate will be marked as non expired and a new time stamp will be added to allow for another 10 minute valid certificate period.
