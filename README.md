@@ -20,6 +20,6 @@ Implement a code base that:
 
 1) properly handles certificates for different domains - DONE
 2) allows certificates to live for 10 minutes before expiring - DONE
-sleeps for 10 seconds when a new certificate is generated - NOT DONE
-generates its own certificate and keeps its certificate up-to-date when it expires - DONE
-can generate multiple certificates at the same time - DONE
+3) sleeps for 10 seconds when a new certificate is generated - NOT DONE
+4) generates its own certificate and keeps its certificate up-to-date when it expires - DONE
+5) can generate multiple certificates at the same time - DONE
