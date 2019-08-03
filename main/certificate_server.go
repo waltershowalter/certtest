@@ -58,6 +58,10 @@ func checkExpire() {
 	}
 }
 
+func checkSameCertRequestInSeconds(passedDomainString string) {
+
+}
+
 func newDomainCert(passedDomainString string) *certData{
 	return &certData{
 		createdTime: time.Now().UTC(),
@@ -66,22 +70,34 @@ func newDomainCert(passedDomainString string) *certData{
 	}
 }
 
-func addDomainCert(passedDomainString string) {
+func checkURL(passedDomainString string) {
+
+
+}
+
+func addDomainCert(passedDomainString string, w http.ResponseWriter) {
 
 	newStruct := newDomainCert(passedDomainString)
 
 	_, exists := certList[passedDomainString]
 	if exists {
 		fmt.Println("Certificate already exists!!!")
+		fmt.Fprintf(w, "Certificate already exists!!!\n")
 		fmt.Println("\tChecking if it's expired")
+		fmt.Fprintf(w, "Checking if it's expired\n")
 		fmt.Println("\tStatus: " + strconv.FormatBool(certList[passedDomainString].expired))
 		if certList[passedDomainString].expired == true {
 			fmt.Println("\tRecertifying certificate....")
+			fmt.Fprintf(w, "Recertifying certificate....\n")
 			certList[passedDomainString].createdTime = time.Now().UTC()
 			certList[passedDomainString].expired = false
+			fmt.Fprintf(w, "%s has been recertified", passedDomainString)
+		} else {
+			fmt.Fprintf(w, "%s is still valid. No need to be recertified", passedDomainString)
 		}
 	} else {
 		certList[passedDomainString] = newStruct
+		fmt.Fprintf(w, "%s certificate has been created", passedDomainString)
 	}
 
 
@@ -93,16 +109,16 @@ func serveCertificate(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		requestURL := r.URL.EscapedPath()
 		path := r.URL.Path
-		fmt.Fprintf(w,"URL,  Path: %s, %s \n", requestURL, path)
+		fmt.Println("URL,  Path: %s, %s \n", requestURL, path)
 		subPaths := strings.Split(r.URL.Path, "/")
-		// fmt.Fprintf(w, "Length : %d\n", len(subPaths))
 		if len(subPaths) > 3 {
 			fmt.Fprintf(w, "Length of URI subpath is too long")
 		}
+		fmt.Println("Browken up path:")
 		for _, currentString := range subPaths {
-			fmt.Fprintf(w, currentString + "\n")
+			fmt.Println("Subpath : %s", currentString)
 		}
-		addDomainCert(subPaths[len(subPaths)-1])
+		addDomainCert(subPaths[len(subPaths)-1], w)
 	default:
 		fmt.Fprintf(w, "Sorry, only GET method is supported.")
 	}
