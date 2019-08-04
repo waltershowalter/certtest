@@ -13,6 +13,7 @@ import (
 	"time"
 	"strings"
 	"testing"
+	"regexp"
 
 )
 
@@ -21,7 +22,10 @@ var (
 	domainName string
 
 	TEN_MINUTES = 10 * time.Second.Minutes()
+	THIRTY_SECONDS = 30 * time.Second.Seconds()
 	TEN_SECONDS = 10 * time.Second.Seconds()
+
+	FOO_STRING = "foo"
 
 )
 
@@ -43,6 +47,7 @@ func checkExpire() {
 	for {
 		time.Sleep(1 * time.Second)
 		timeNow := time.Now().UTC()
+		// TODO Change to 10 minutes when in production. 30 seconds is for testing
 		minusTenMinutes := timeNow.Add(time.Duration(-30) * time.Second)
 
 		for thisKey, thisStruct := range certList {
@@ -58,7 +63,26 @@ func checkExpire() {
 	}
 }
 
-func checkSameCertRequestInSeconds(passedDomainString string) {
+func requestTooSoonForCerfificate(passedDomainString string) bool {
+
+	fmt.Println("Checking if request within %s", TEN_SECONDS)
+
+	timeNow := time.Now().UTC()
+
+	minusTenSeconds := timeNow.Add(time.Duration(-TEN_SECONDS) * time.Second)
+
+	_, exists := certList[passedDomainString]
+	if exists {
+		createdTime := certList[passedDomainString].createdTime
+		if createdTime.Before(minusTenSeconds) {
+			return false
+		}
+
+	} else {
+			return true
+	}
+
+	return false
 
 }
 
@@ -70,8 +94,20 @@ func newDomainCert(passedDomainString string) *certData{
 	}
 }
 
-func checkURL(passedDomainString string) {
+func isValidURL(passedDomainString string) bool {
 
+	if len(passedDomainString) == 0 {
+		fmt.Println("No domain string passed")
+		return false
+	}
+
+	r, _ := regexp.Compile("^[a-z]+\\.[a-z]+\\.[a-z]+$")
+
+	if r.MatchString(passedDomainString) {
+		return true
+	}
+
+	return false
 
 }
 
@@ -118,7 +154,15 @@ func serveCertificate(w http.ResponseWriter, r *http.Request) {
 		for _, currentString := range subPaths {
 			fmt.Println("Subpath : %s", currentString)
 		}
-		addDomainCert(subPaths[len(subPaths)-1], w)
+		domainString := subPaths[len(subPaths)-1]
+		if isValidURL(domainString) {
+			addDomainCert(domainString, w)
+		} else {
+			fmt.Fprintf(w, "Sorry, that's not a valid cert request")
+		}
+
+	case "POST":
+		fmt.Fprintf(w, "Sorry, POST is not supported. Only GET method is supported.")
 	default:
 		fmt.Fprintf(w, "Sorry, only GET method is supported.")
 	}
