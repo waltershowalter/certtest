@@ -22,8 +22,8 @@ var (
 	domainName string
 
 	TEN_MINUTES = 10 * time.Second.Minutes()
-	THIRTY_SECONDS = 30 * time.Second.Seconds()
-	TEN_SECONDS = 10 * time.Second.Seconds()
+	THIRTY_SECONDS = 30
+	TEN_SECONDS = 10
 
 	FOO_STRING = "foo"
 
@@ -48,13 +48,13 @@ func checkExpire() {
 		time.Sleep(1 * time.Second)
 		timeNow := time.Now().UTC()
 		// TODO Change to 10 minutes when in production. 30 seconds is for testing
-		minusTenMinutes := timeNow.Add(time.Duration(-30) * time.Second)
+		minusTenMinutes := timeNow.Add(time.Duration(-THIRTY_SECONDS) * time.Second)
 
 		for thisKey, thisStruct := range certList {
 			thisStruct.mux.Lock()
-			fmt.Println("Testing expiry : %s", thisKey)
+			fmt.Println("Testing expiry : ", thisKey)
 			if thisStruct.createdTime.Before(minusTenMinutes) {
-				fmt.Println("\tCert expired for: %s", thisKey)
+				fmt.Println("\tCert expired for: ", thisKey)
 				thisStruct.expired = true
 			}
 			thisStruct.mux.Unlock()
@@ -63,9 +63,9 @@ func checkExpire() {
 	}
 }
 
-func requestTooSoonForCerfificate(passedDomainString string) bool {
+func requestTooSoonForSameCerfificate(passedDomainString string) bool {
 
-	fmt.Println("Checking if request within %s", TEN_SECONDS)
+	fmt.Printf("Checking if same certificate request within %d seconds \n", TEN_SECONDS)
 
 	timeNow := time.Now().UTC()
 
@@ -75,11 +75,13 @@ func requestTooSoonForCerfificate(passedDomainString string) bool {
 	if exists {
 		createdTime := certList[passedDomainString].createdTime
 		if createdTime.Before(minusTenSeconds) {
+			fmt.Printf("\tCertificate NOT created in the last %d seconds. Honoring request \n", TEN_SECONDS)
 			return false
+		} else {
+			fmt.Printf("\tCertificate created in the last %d seconds. Ignoriing request \n", TEN_SECONDS)
+			return true
 		}
 
-	} else {
-			return true
 	}
 
 	return false
@@ -119,6 +121,10 @@ func addDomainCert(passedDomainString string, w http.ResponseWriter) {
 	if exists {
 		fmt.Println("Certificate already exists!!!")
 		fmt.Fprintf(w, "Certificate already exists!!!\n")
+		if requestTooSoonForSameCerfificate(passedDomainString) {
+			fmt.Fprintf(w, "Request too soon for same certificate %s", passedDomainString)
+			return
+		}
 		fmt.Println("\tChecking if it's expired")
 		fmt.Fprintf(w, "Checking if it's expired\n")
 		fmt.Println("\tStatus: " + strconv.FormatBool(certList[passedDomainString].expired))
@@ -145,14 +151,14 @@ func serveCertificate(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		requestURL := r.URL.EscapedPath()
 		path := r.URL.Path
-		fmt.Println("URL,  Path: %s, %s \n", requestURL, path)
+		fmt.Println("URL,  Path: ", requestURL, path)
 		subPaths := strings.Split(r.URL.Path, "/")
 		if len(subPaths) > 3 {
 			fmt.Fprintf(w, "Length of URI subpath is too long")
 		}
 		fmt.Println("Browken up path:")
 		for _, currentString := range subPaths {
-			fmt.Println("Subpath : %s", currentString)
+			fmt.Println("Subpath : ", currentString)
 		}
 		domainString := subPaths[len(subPaths)-1]
 		if isValidURL(domainString) {
